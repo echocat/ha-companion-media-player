@@ -3,26 +3,18 @@
     "step": {
       "user": {
         "title": "Companion Media Player",
-        "description": "Select an Android device with the Companion App to create a Media Player for.",
-        "data": {
-          "media_session_entity": "Media Session Sensor"
-        }
+        "description": "This integration automatically discovers all Android devices with the Companion App and creates Media Player entities for them. Click Submit to activate."
       }
     },
-    "error": {
-      "no_sensors_found": "No media session sensors found. Make sure the Android Companion App is installed and the Media Session sensor is enabled.",
-      "already_configured": "This device is already configured."
-    },
     "abort": {
-      "no_sensors_found": "No media session sensors found. Make sure the Android Companion App is installed and the Media Session sensor is enabled.",
-      "already_configured": "This device is already configured."
+      "already_configured": "Companion Media Player is already configured."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Companion Media Player Options",
-        "description": "Configure the behavior of the media player.",
+        "description": "Configure the default behavior for all media players.",
         "data": {
           "session_timeout": "Session timeout (minutes)",
           "volume_max": "Device max volume level"

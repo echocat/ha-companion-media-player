@@ -37,6 +37,7 @@ class MediaSession:
     album: str | None = None
     duration: int | None = None
     position: int | None = None
+    media_image_url: str | None = None
     last_updated: datetime = field(default_factory=dt_util.utcnow)
 
     @property

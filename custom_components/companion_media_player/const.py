@@ -10,12 +10,6 @@ ENTITY_ATTR_PREFIX_PLAYBACK_POSITION = "playback_position_"
 ENTITY_ATTR_PREFIX_PLAYBACK_STATE = "playback_state_"
 ENTITY_ATTR_PREFIX_TITLE = "title_"
 
-# Config keys
-CONF_DEVICE_ID = "device_id"
-CONF_MEDIA_SESSION_ENTITY = "media_session_entity"
-CONF_LAST_NOTIFICATION_ENTITY = "last_notification_entity"
-CONF_DEVICE_NAME = "device_name"
-
 # Options keys
 CONF_SESSION_TIMEOUT = "session_timeout"
 CONF_VOLUME_MAX = "volume_max"
@@ -27,6 +21,7 @@ DEFAULT_VOLUME_MAX = 15  # typical Android max volume level
 # Sensor patterns
 MEDIA_SESSION_SENSOR_SUFFIX = "_media_session"
 LAST_NOTIFICATION_SENSOR_SUFFIX = "_last_notification"
+VOLUME_LEVEL_MUSIC_SENSOR_SUFFIX = "_volume_music"
 
 # Notification command messages
 NOTIFY_COMMAND_MEDIA = "command_media"

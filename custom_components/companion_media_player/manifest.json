@@ -4,6 +4,7 @@
   "codeowners": ["@echocat"],
   "config_flow": true,
   "documentation": "https://github.com/echocat/ha-companion-media-player",
+  "after_dependencies": ["mobile_app"],
   "integration_type": "service",
   "iot_class": "local_push",
   "issue_tracker": "https://github.com/echocat/ha-companion-media-player/issues",

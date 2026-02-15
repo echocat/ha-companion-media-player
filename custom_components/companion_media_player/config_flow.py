@@ -3,59 +3,22 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.config_entries import ConfigFlowResult, OptionsFlow
 from homeassistant.core import callback
-from homeassistant.helpers import device_registry as dr, entity_registry as er
 
 from .const import (
-    CONF_DEVICE_ID,
     CONF_SESSION_TIMEOUT,
     CONF_VOLUME_MAX,
     DEFAULT_SESSION_TIMEOUT,
     DEFAULT_VOLUME_MAX,
     DOMAIN,
-    MEDIA_SESSION_SENSOR_SUFFIX,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-@dataclass
-class Device:
-    device_id: str
-    device_name: str
-    media_session_entity_id: str
-    media_session_entity_name: str
-
-
-def _find_possible_devices(hass) -> dict[str, str]:
-    """Find devices that can be possibly be used."""
-
-    device_registry = dr.async_get(hass)
-    entity_registry = er.async_get(hass)
-
-    result: dict[str, str] = {}
-    for entity in entity_registry.entities.values():
-        if entity.domain != "sensor":
-            continue
-        if not entity.unique_id.endswith(MEDIA_SESSION_SENSOR_SUFFIX):
-            continue
-        if entity.entity_id is None:
-            continue
-        if entity.device_id is None:
-            continue
-        device = device_registry.async_get(entity.device_id)
-        if device is None:
-            _LOGGER.warning("Found entity %s that has a registered device with ID %s, but this device does not exist.",
-                            entity.entity_id, entity.device_id)
-            continue
-        result[device.id] = device.name_by_user or device.name or device.id
-
-    return result
 
 
 class CompanionMediaPlayerConfigFlow(
@@ -63,61 +26,25 @@ class CompanionMediaPlayerConfigFlow(
 ):
     """Handle a config flow for Companion Media Player."""
 
-    VERSION = 1
+    VERSION = 2
     MINOR_VERSION = 1
 
     async def async_step_user(
             self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Handle the initial step where user selects a device."""
-        errors: dict[str, str] = {}
+        """Handle the initial step – just activate the integration."""
 
-        # Find all media session sensors
-        all_devices = _find_possible_devices(self.hass)
-
-        if not all_devices:
-            return self.async_abort(reason="no_sensors_found")
-
-        # Filter out already-configured sensors
-        already_configured_device_ids: set[str] = set()
-        for entry in self._async_current_entries():
-            already_configured_device_ids.add(entry.data.get(CONF_DEVICE_ID, ""))
-
-        unconfigured_devices = {
-            eid: name
-            for eid, name in all_devices.items()
-            if eid not in already_configured_device_ids
-        }
-
-        if not unconfigured_devices:
+        # Only allow a single config entry for this integration
+        if self._async_current_entries():
             return self.async_abort(reason="already_configured")
 
         if user_input is not None:
-            device_id = user_input[CONF_DEVICE_ID]
-
-            await self.async_set_unique_id(device_id)
-            self._abort_if_unique_id_configured()
-
             return self.async_create_entry(
-                title=unconfigured_devices[device_id],
-                data={
-                    CONF_DEVICE_ID: device_id,
-                },
+                title="Companion Media Player",
+                data={},
             )
 
-        data_schema = vol.Schema(
-            {
-                vol.Required(CONF_DEVICE_ID): vol.In(
-                    unconfigured_devices
-                ),
-            }
-        )
-
-        return self.async_show_form(
-            step_id="user",
-            data_schema=data_schema,
-            errors=errors,
-        )
+        return self.async_show_form(step_id="user")
 
     @staticmethod
     @callback

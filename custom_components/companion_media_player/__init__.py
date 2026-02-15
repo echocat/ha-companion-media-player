@@ -6,13 +6,52 @@ import logging
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
-from homeassistant.core import HomeAssistant
+from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
 
-from .const import DOMAIN
+from .const import DOMAIN, MEDIA_SESSION_SENSOR_SUFFIX
 
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.MEDIA_PLAYER]
+
+
+@callback
+def _handle_entity_created(
+    hass: HomeAssistant, entry: ConfigEntry, entity_id: str
+) -> None:
+    """Handle a new entity being registered — check if it's a media session sensor."""
+    entity_registry = er.async_get(hass)
+    entity_entry = entity_registry.async_get(entity_id)
+
+    if entity_entry is None:
+        return
+    if entity_entry.domain != "sensor":
+        return
+    if not entity_entry.unique_id.endswith(MEDIA_SESSION_SENSOR_SUFFIX):
+        return
+
+    _LOGGER.info(
+        "New media session sensor discovered: %s. Checking for new devices...",
+        entity_id,
+    )
+
+    from .media_player import async_discover_new_devices
+
+    async_discover_new_devices(hass, entry)
+
+
+@callback
+def _handle_entity_removed(
+    hass: HomeAssistant, entry: ConfigEntry, entity_id: str
+) -> None:
+    """Handle an entity being removed — clean up our entity if its sensor is gone."""
+    # We can't look up the removed entity in the registry (it's already gone),
+    # so we run a full cleanup to remove any of our entities whose source
+    # device/sensor no longer exists.
+    from .media_player import async_cleanup_removed_devices
+
+    async_cleanup_removed_devices(hass, entry)
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -23,6 +62,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     entry.async_on_unload(entry.add_update_listener(_async_update_listener))
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Listen for entity registry changes (new/removed media session sensors)
+    @callback
+    def _async_entity_registry_updated(event: Event) -> None:
+        """Handle entity registry updates to discover or remove devices."""
+        action = event.data.get("action")
+        entity_id = event.data.get("entity_id", "")
+
+        if action == "create":
+            _handle_entity_created(hass, entry, entity_id)
+        elif action == "remove":
+            _handle_entity_removed(hass, entry, entity_id)
+
+    entry.async_on_unload(
+        hass.bus.async_listen(
+            er.EVENT_ENTITY_REGISTRY_UPDATED,
+            _async_entity_registry_updated,
+        )
+    )
+
     return True
 
 
@@ -39,3 +98,27 @@ async def _async_update_listener(
 ) -> None:
     """Handle options update by reloading the entry."""
     await hass.config_entries.async_reload(entry.entry_id)
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate old config entries to the new format.
+
+    V1 stored a single device_id per config entry.
+    V2 uses a single config entry with no device-specific data;
+    devices are discovered automatically.
+    """
+    if entry.version < 2:
+        _LOGGER.info(
+            "Migrating config entry from version %s to 2. "
+            "Old device-specific data will be removed; "
+            "devices are now auto-discovered.",
+            entry.version,
+        )
+        hass.config_entries.async_update_entry(
+            entry,
+            data={},
+            version=2,
+            minor_version=1,
+        )
+
+    return True
