@@ -1,0 +1,11 @@
+homeassistant:
+frontend:
+http:
+mobile_app:
+config:
+my:
+
+logger:
+  default: info
+  logs:
+    custom_components.companion_media_player: debug

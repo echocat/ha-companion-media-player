@@ -1,0 +1,39 @@
+{
+  "name": "Home Assistant Custom Component Dev",
+  "image": "mcr.microsoft.com/devcontainers/python:3.13",
+  "forwardPorts": [8123],
+  "portsAttributes": {
+    "8123": {
+      "label": "Home Assistant",
+      "onAutoForward": "notify"
+    }
+  },
+  "containerEnv": {
+    "WORKSPACE": "${containerWorkspaceFolder}"
+  },
+  "postCreateCommand": {
+    "apt": ["sudo", "apt", "install", "-y", "ffmpeg", "python3-dev", "build-essential", "libturbojpeg0", "libpcap-dev"],
+    "go2rtc": ["bash", "-c", "sudo curl -L https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64 -o /usr/local/bin/go2rtc && sudo chmod +x /usr/local/bin/go2rtc"],
+    "haDirectory": ["mkdir", "-p", "/home/vscode/.homeassistant"],
+    "configuration": ["ln", "-s", "${containerWorkspaceFolder}/.devcontainer/configuration.yaml", "/home/vscode/.homeassistant/configuration.yaml"],
+    "sourceCode": ["ln", "-s", "${containerWorkspaceFolder}/custom_components", "/home/vscode/.homeassistant/custom_components"],
+    "pip": ["pip", "install", "homeassistant", "colorlog", "pymicro-vad==1.0.1", "pyspeex_noise==1.0.2"]
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.pylint",
+        "charliermarsh.ruff",
+        "redhat.vscode-yaml"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "python.analysis.extraPaths": ["/usr/src/homeassistant"],
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "charliermarsh.ruff"
+      }
+    }
+  },
+  "remoteUser": "vscode"
+}
