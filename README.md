@@ -4,6 +4,8 @@
 
 A Home Assistant custom integration that creates **Media Player entities** from the **Android Companion App's Media Session sensors**.
 
+## ⚠️⚠️⚠️ STILL WORK IN PROGRESS ⚠️⚠️⚠️
+
 ## Features
 
 - **Auto-Discovery**: Automatically detects all Android devices with the Companion App that have a Media Session sensor enabled.
