@@ -41,6 +41,7 @@ VOLUME_STREAM_MUSIC = "music_stream"
 # Well-known Android package names for friendly display
 KNOWN_APPS: dict[str, str] = {
     "com.spotify.music": "Spotify",
+    "com.spotify.kids": "Spotify Kids",
     "com.google.android.apps.youtube.music": "YouTube Music",
     "com.google.android.youtube": "YouTube",
     "com.google.android.apps.podcasts": "Google Podcasts",

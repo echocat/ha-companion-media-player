@@ -60,7 +60,7 @@ class ArtworkResolver:
         # Attempt provider-specific resolution
         image_url: str | None = None
 
-        if package_name == "com.spotify.music" and self._is_spotify_uri(media_id):
+        if (package_name == "com.spotify.music" or package_name == "com.spotify.kids") and self._is_spotify_uri(media_id):
             image_url = await self._resolve_spotify(media_id)
 
         # Cache the result (even None to avoid repeated failed lookups)
