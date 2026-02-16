@@ -106,18 +106,22 @@ class MediaSessions:
             key=lambda s: s.package_name,
         )
 
-    def update_selected(self, v: MediaSession) -> None:
+    def update_selected(self, device_name: str, v: MediaSession) -> None:
         if isinstance(v, MediaSession):
             if not v.package_name:
+                _LOGGER.debug("Switched to selected session NONE on %s", device_name)
                 self._selected = None
             elif self._values[v.package_name]:
+                _LOGGER.debug("Switched to selected session %s (state=%s) on %s", v, v.state, device_name)
                 self._selected = v
             else:
                 raise ValueError(f"Value {v.package_name} is not in the actual stored sessions.")
         elif isinstance(v, str):
             if not v:
                 self._selected = None
+                _LOGGER.debug("Switched to selected session NONE on %s", device_name)
             elif self._values[v]:
+                _LOGGER.debug("Switched to selected session %s (state=%s) on %s", v, v.state, device_name)
                 self._selected = v
             else:
                 raise ValueError(f"Value {v} is not in the actual stored sessions.")
