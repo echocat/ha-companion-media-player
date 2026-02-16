@@ -17,7 +17,8 @@
     "haDirectory": ["mkdir", "-p", "/home/vscode/.homeassistant"],
     "configuration": ["ln", "-s", "${containerWorkspaceFolder}/.devcontainer/configuration.yaml", "/home/vscode/.homeassistant/configuration.yaml"],
     "sourceCode": ["ln", "-s", "${containerWorkspaceFolder}/custom_components", "/home/vscode/.homeassistant/custom_components"],
-    "pip": ["pip", "install", "homeassistant", "colorlog", "pymicro-vad==1.0.1", "pyspeex_noise==1.0.2"]
+    "pip": ["python3", "-m", "pip","install", "--requirement", "crequirements.txt"],
+    "hacs": ["bash", "-c", "curl -sfSL https://get.hacs.xyz | sudo bash -"]
   },
   "customizations": {
     "vscode": {

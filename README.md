@@ -17,7 +17,7 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 
 ## Requirements
 
-- Home Assistant 2024.1.0 or newer
+- Home Assistant 2026.1.0 or newer
 - Android device(s) with the [Home Assistant Companion App](https://companion.home-assistant.io/) installed
 - **Media Session sensor** enabled in the Companion App (Manage Sensors → Media Session)
 - **Notification Listener permission** granted to the Companion App
