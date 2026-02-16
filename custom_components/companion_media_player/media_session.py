@@ -70,8 +70,8 @@ class MediaSessions:
     def by_package_name(self, package_name: str) -> MediaSession | None:
         return self._values[package_name]
 
-    def get_selected(self, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> MediaSession | None:
-        if self._selected and self._selected.is_active(session_timeout):
+    def get_selected(self, device_name: str, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> MediaSession | None:
+        if self._selected and self._selected.is_active(session_timeout) and self._selected.package_name in self._values:
             return self._selected
 
         # Nothing already selected... simply pick the next one which is playing/buffering...
@@ -81,16 +81,19 @@ class MediaSessions:
             state = candidate.state.lower()
             if state == "playing" or state == "buffering":
                 self._selected = candidate
+                _LOGGER.debug("Switched to selected session %s (state=%s) on %s", candidate.package_name, candidate.state, device_name)
                 return self._selected
-
 
         # Okm next try, pick just one which is still active...
         for candidate in self._values.values():
             if not candidate.is_active(session_timeout):
                 continue
             self._selected = candidate
+            _LOGGER.debug("Switched to selected session %s (state=%s) on %s", candidate.package_name, candidate.state, device_name)
             return self._selected
 
+        self._selected = None
+        _LOGGER.debug("Switched to selected session NONE on %s", device_name)
         return None
 
     def by_is_active(self, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> list[MediaSession]:
@@ -226,12 +229,6 @@ class MediaSessions:
         ]
         for pkg in stale:
             del self._values[pkg]
-            _LOGGER.debug(
-                "Removed stale session %s from %s", pkg, device_name
-            )
-
-        # Reset active source if it was removed
-        if self._selected and self._selected not in self._values:
-            self._selected = None
+            _LOGGER.debug("Removed stale session %s from %s", pkg, device_name)
 
         return stale
