@@ -1,5 +1,5 @@
 {
-  "domain": "mobile_app",
+  "domain": "companion_media_player",
   "name": "Companion Media Player",
   "after_dependencies": ["mobile_app"],
   "codeowners": ["@echocat"],
