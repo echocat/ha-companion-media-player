@@ -57,4 +57,5 @@ KNOWN_APPS: dict[str, str] = {
     "com.netflix.mediaclient": "Netflix",
     "com.disney.disneyplus": "Disney+",
     "tv.twitch.android.app": "Twitch",
+    "tunein.player": "TuneIn",
 }

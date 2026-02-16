@@ -342,6 +342,7 @@ class CompanionMediaPlayer(MediaPlayerEntity):
         | MediaPlayerEntityFeature.NEXT_TRACK
         | MediaPlayerEntityFeature.PREVIOUS_TRACK
         | MediaPlayerEntityFeature.SELECT_SOURCE
+        | MediaPlayerEntityFeature.SELECT_SOUND_MODE
     )
 
     def __init__(
@@ -709,8 +710,13 @@ class CompanionMediaPlayer(MediaPlayerEntity):
         await self._async_trigger_sensor_update()
 
     async def async_select_source(self, source: str) -> None:
-        """Select a media session as the active source."""
-        self._manager.select_source(source)
+        """Select a media session as the active source (async path)."""
+        _LOGGER.debug("async_select_source called for %s: %s", self.entity_id, source)
+        changed = self._manager.select_source(source)
+        if not changed:
+            return
+
+        await self._async_resolve_artwork()
         self.async_write_ha_state()
 
     # --- Internal Helpers ---

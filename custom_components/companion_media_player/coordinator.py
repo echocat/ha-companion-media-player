@@ -118,17 +118,28 @@ class MediaSessionManager:
             for session in self.active_sessions.values()
         ]
 
-    def select_source(self, source_name: str) -> None:
-        """Select a source by its friendly name."""
+    def select_source(self, source_name: str) -> bool:
+        """Select a source by friendly name or package name.
+
+        Returns True if the active source changed.
+        """
+        normalized = source_name.strip().casefold()
+
         for pkg, session in self.active_sessions.items():
-            if session.friendly_name == source_name:
+            friendly = session.friendly_name.strip().casefold()
+            if friendly == normalized or pkg.strip().casefold() == normalized:
+                changed = self._active_source != pkg
                 self._active_source = pkg
-                return
+                return changed
+
+        available_sources = ", ".join(self.source_list)
         _LOGGER.warning(
-            "Source '%s' not found in active sessions for %s",
+            "Source '%s' not found in active sessions for %s. Available: %s",
             source_name,
             self.device_name,
+            available_sources or "none",
         )
+        return False
 
     @callback
     def update_from_sensor(self, new_state: State) -> None:
@@ -155,25 +166,9 @@ class MediaSessionManager:
                                     self.device_name, ENTITY_ATTR_PREFIX_TITLE, package_name)
                     continue
                 artist = attrs[f"{ENTITY_ATTR_PREFIX_ARTIST}{package_name}"]
-                if artist is None:
-                    _LOGGER.warning("Media session of device %s is lacking required attribute %s%s; ignoring session.",
-                                    self.device_name, ENTITY_ATTR_PREFIX_ARTIST, package_name)
-                    continue
                 album = attrs[f"{ENTITY_ATTR_PREFIX_ALBUM}{package_name}"]
-                if album is None:
-                    _LOGGER.warning("Media session of device %s is lacking required attribute %s%s; ignoring session.",
-                                    self.device_name, ENTITY_ATTR_PREFIX_ALBUM, package_name)
-                    continue
                 duration = _parse_int(attrs[f"{ENTITY_ATTR_PREFIX_DURATION}{package_name}"])
-                if duration is None:
-                    _LOGGER.warning("Media session of device %s is lacking required attribute %s%s; ignoring session.",
-                                    self.device_name, ENTITY_ATTR_PREFIX_DURATION, package_name)
-                    continue
                 position = _parse_int(attrs[f"{ENTITY_ATTR_PREFIX_PLAYBACK_POSITION}{package_name}"])
-                if position is None:
-                    _LOGGER.warning("Media session of device %s is lacking required attribute %s%s; ignoring session.",
-                                    self.device_name, ENTITY_ATTR_PREFIX_PLAYBACK_POSITION, package_name)
-                    continue
                 self._add_or_update_session(
                     package_name=package_name,
                     media_id=media_id,
@@ -255,13 +250,13 @@ class MediaSessionManager:
     def _add_or_update_session(
             self,
             package_name: str,
-            media_id: str,
+            media_id: str | None,
             state: str,
             title: str,
-            artist: str,
-            album: str,
-            duration: int,
-            position: int,
+            artist: str | None,
+            album: str | None,
+            duration: int | None,
+            position: int | None,
             now: datetime,
     ) -> None:
         session: MediaSession
