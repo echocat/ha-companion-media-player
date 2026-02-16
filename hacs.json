@@ -1,7 +1,7 @@
 {
   "name": "Companion Media Player",
-  "homeassistant": "2026.1.0",
   "render_readme": true,
-  "zip_release": true,
-  "filename": "ha-companion-media-player.zip"
+  "homeassistant": "2026.1.0",
+  "filename": "ha-companion-media-player.zip",
+  "zip_release": true
 }
