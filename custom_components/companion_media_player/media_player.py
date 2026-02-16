@@ -626,12 +626,12 @@ class MediaPlayer(MediaPlayerEntity):
         """
         normalized = source_name.strip().casefold()
 
-        selected = self._sessions.selected
+        selected = self._sessions.get_selected(self.session_timeout)
         for session in self.active_sessions:
             friendly = session.friendly_name.strip().casefold()
             if friendly == normalized or session.package_name.strip().casefold() == normalized:
                 if not selected or selected.package_name != session.package_name:
-                    self._sessions.selected = session
+                    self._sessions.update_selected(session)
                     return True
                 return False
 
@@ -679,7 +679,7 @@ class MediaPlayer(MediaPlayerEntity):
     @property
     def selected_session(self) -> MediaSession | None:
         """Return the currently selected source (package name)."""
-        return self._sessions.selected
+        return self._sessions.get_selected(self.session_timeout)
 
     @property
     def notification_service_id(self) -> str:

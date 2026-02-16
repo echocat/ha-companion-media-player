@@ -70,9 +70,28 @@ class MediaSessions:
     def by_package_name(self, package_name: str) -> MediaSession | None:
         return self._values[package_name]
 
-    @property
-    def selected(self) -> MediaSession | None:
-        return self._selected
+    def get_selected(self, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> MediaSession | None:
+        if self._selected and self._selected.is_active(session_timeout):
+            return self._selected
+
+        # Nothing already selected... simply pick the next one which is playing/buffering...
+        for candidate in self._values.values():
+            if not candidate.is_active(session_timeout):
+                continue
+            state = candidate.state.lower()
+            if state == "playing" or state == "buffering":
+                self._selected = candidate
+                return self._selected
+
+
+        # Okm next try, pick just one which is still active...
+        for candidate in self._values.values():
+            if not candidate.is_active(session_timeout):
+                continue
+            self._selected = candidate
+            return self._selected
+
+        return None
 
     def by_is_active(self, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> list[MediaSession]:
         return sorted(
@@ -84,8 +103,7 @@ class MediaSessions:
             key=lambda s: s.package_name,
         )
 
-    @selected.setter
-    def selected(self, v: MediaSession) -> None:
+    def update_selected(self, v: MediaSession) -> None:
         if isinstance(v, MediaSession):
             if not v.package_name:
                 self._selected = None
