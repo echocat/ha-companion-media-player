@@ -101,6 +101,7 @@ def async_discover_new_devices(
             config_entry=config_entry,
             device=disc.device,
             media_session_entity_id=disc.media_session_entity_id,
+            notification_service_id=disc.notification_service_id,
             volume_max=volume_max,
             volume_entity_id=disc.volume_entity_id,
             session_timeout=session_timeout,
@@ -222,6 +223,7 @@ async def async_setup_entry(
             config_entry=config_entry,
             device=disc.device,
             media_session_entity_id=disc.media_session_entity_id,
+            notification_service_id=disc.notification_service_id,
             volume_max=volume_max,
             volume_entity_id=disc.volume_entity_id,
             session_timeout=session_timeout,
@@ -253,6 +255,7 @@ class MediaPlayer(MediaPlayerEntity):
             media_session_entity_id: str,
             volume_max: int,
             volume_entity_id: str | None = None,
+            notification_service_id: str | None = None,
             session_timeout: int = DEFAULT_SESSION_TIMEOUT,
     ) -> None:
         """Initialize the media player."""
@@ -262,6 +265,7 @@ class MediaPlayer(MediaPlayerEntity):
         self._volume_max = volume_max
         self._volume_level: float | None = None
         self._volume_entity_id = volume_entity_id
+        self._notification_service_id = notification_service_id
         self._device = device
         self._session_timeout = session_timeout
         self._sessions: MediaSessions = MediaSessions()
@@ -273,17 +277,24 @@ class MediaPlayer(MediaPlayerEntity):
 
     @property
     def supported_features(self) -> MediaPlayerEntityFeature:
-        """Return supported features, including VOLUME_SET only if a volume sensor exists."""
-        features = (
-                MediaPlayerEntityFeature.PLAY
-                | MediaPlayerEntityFeature.PAUSE
-                | MediaPlayerEntityFeature.STOP
-                | MediaPlayerEntityFeature.NEXT_TRACK
-                | MediaPlayerEntityFeature.PREVIOUS_TRACK
-                | MediaPlayerEntityFeature.SELECT_SOURCE
-        )
-        if self._volume_entity_id is not None:
-            features |= MediaPlayerEntityFeature.VOLUME_SET
+
+        features: MediaPlayerEntityFeature = 0
+
+        # Only if there is a notification service, we can make this one controllable...
+        if self._notification_service_id is not None:
+            features |= (
+                    MediaPlayerEntityFeature.PLAY
+                    | MediaPlayerEntityFeature.PAUSE
+                    | MediaPlayerEntityFeature.STOP
+                    | MediaPlayerEntityFeature.NEXT_TRACK
+                    | MediaPlayerEntityFeature.PREVIOUS_TRACK
+                    | MediaPlayerEntityFeature.SELECT_SOURCE
+            )
+
+            # Also: Only if there is a volume entity, we can make the volume controllable...
+            if self._volume_entity_id is not None:
+                features |= MediaPlayerEntityFeature.VOLUME_SET
+
         return features
 
     @property
@@ -671,8 +682,8 @@ class MediaPlayer(MediaPlayerEntity):
         return self._sessions.selected
 
     @property
-    def notify_service_name(self) -> str:
-        return f"mobile_app_{self.device_name}"
+    def notification_service_id(self) -> str:
+        return self._notification_service_id
 
     # --- Internal Helpers ---
 
@@ -714,7 +725,7 @@ class MediaPlayer(MediaPlayerEntity):
         }
         if data is not None:
             payload["data"] = data
-        await self._hass.services.async_call("notify", self.notify_service_name, payload, blocking=blocking)
+        await self._hass.services.async_call("notify", self.notification_service_id, payload, blocking=blocking)
 
     async def _async_trigger_sensor_update(self) -> None:
         """Send command_update_sensors to get faster state feedback."""
@@ -722,5 +733,6 @@ class MediaPlayer(MediaPlayerEntity):
             await self._async_send_notify_command(NOTIFY_COMMAND_UPDATE_SENSORS)
             _LOGGER.debug("Sensor update on %s successfully triggered.", self.device_name)
         except Exception as err:
-            _LOGGER.debug("Failed to trigger sensor update on %s. This is not critical; ignoring... %s", self.device_name,
+            _LOGGER.debug("Failed to trigger sensor update on %s. This is not critical; ignoring... %s",
+                          self.device_name,
                           err, exc_info=True)

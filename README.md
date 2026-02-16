@@ -57,11 +57,11 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 
 ### State Tracking
 
-The Android Companion App provides a `sensor.<device>_media_session` entity that reports the current media playback state and metadata. This integration listens for state changes on that sensor and caches the state of each individual media session (identified by package name).
+The Android Companion App provides usually a `sensor.<device>_media_session` entity that reports the current media playback state and metadata. This integration listens for state changes on that sensor and caches the state of each individual media session (identified by package name).
 
 ### Media Control
 
-Control commands are sent via Home Assistant's notification service (`notify.mobile_app_<device>`), using the Companion App's `command_media` and `command_volume_level` notification commands. After each command, a `command_update_sensors` notification is sent to trigger a faster state update.
+Control commands are sent via Home Assistant's notification service (e.g. `notify.mobile_app_<device>`), using the Companion App's `command_media` and `command_volume_level` notification commands. After each command, a `command_update_sensors` notification is sent to trigger a faster state update.
 
 ### Source Selection
 
