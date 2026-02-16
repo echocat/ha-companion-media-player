@@ -603,7 +603,7 @@ class MediaPlayer(MediaPlayerEntity):
                 self.device_name,
             )
         except Exception as err:
-            _LOGGER.exception("Failed to set volume on %s", self.device_name, err, exc_info=True)
+            _LOGGER.error("Failed to set volume on %s: %s", self.device_name, err, exc_info=True)
 
         # Trigger sensor update for faster feedback
         await self._async_trigger_sensor_update()
@@ -698,7 +698,7 @@ class MediaPlayer(MediaPlayerEntity):
                           session.package_name,
                           )
         except Exception as err:
-            _LOGGER.exception("Failed to send media command '%s' to %s", command, self.device_name, err, exc_info=True)
+            _LOGGER.error("Failed to send media command '%s' to %s: %s", command, self.device_name, err, exc_info=True)
 
         # Trigger sensor update for faster feedback
         await self._async_trigger_sensor_update()
@@ -722,5 +722,5 @@ class MediaPlayer(MediaPlayerEntity):
             await self._async_send_notify_command(NOTIFY_COMMAND_UPDATE_SENSORS)
             _LOGGER.debug("Sensor update on %s successfully triggered.", self.device_name)
         except Exception as err:
-            _LOGGER.debug("Failed to trigger sensor update on %s. This is not critical; ignoring...", self.device_name,
+            _LOGGER.debug("Failed to trigger sensor update on %s. This is not critical; ignoring... %s", self.device_name,
                           err, exc_info=True)

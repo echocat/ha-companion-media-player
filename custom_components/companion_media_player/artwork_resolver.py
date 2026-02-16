@@ -131,10 +131,10 @@ class ArtworkResolver:
                     )
                 return thumbnail_url
         except TimeoutError as err:
-            _LOGGER.debug("Timeout resolving artwork for %s", media_id, err)
+            _LOGGER.debug("Timeout resolving artwork for %s: %s", media_id, err)
             return None
         except Exception as err:
-            _LOGGER.debug("Failed to resolve artwork for %s", media_id, err, exc_info=True)
+            _LOGGER.debug("Failed to resolve artwork for %s: %s", media_id, err, exc_info=True)
             return None
 
 
