@@ -1,7 +1,7 @@
 """Artwork resolution for media sessions.
 
 Resolves album art / cover images from media IDs using provider-specific
-APIs. Currently supports Spotify track URIs via the public oEmbed endpoint
+APIs. Currently, supports Spotify track URIs via the public oEmbed endpoint
 (no authentication required).
 """
 

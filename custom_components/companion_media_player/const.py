@@ -20,7 +20,6 @@ DEFAULT_VOLUME_MAX = 15  # typical Android max volume level
 
 # Sensor patterns
 MEDIA_SESSION_SENSOR_SUFFIX = "_media_session"
-LAST_NOTIFICATION_SENSOR_SUFFIX = "_last_notification"
 VOLUME_LEVEL_MUSIC_SENSOR_SUFFIX = "_volume_music"
 
 # Notification command messages
