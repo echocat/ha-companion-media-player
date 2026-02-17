@@ -8,11 +8,17 @@ on:
   workflow_dispatch:
 
 jobs:
-  validate-hacs:
+  hassfest:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Checkout code
+        uses: "actions/checkout@v6"
+      - name: hassfest validation
+        uses: home-assistant/actions/hassfest@master
+  hacs:
     runs-on: "ubuntu-latest"
     steps:
       - name: HACS validation
         uses: "hacs/action@main"
         with:
           category: "integration"
-          ignore: "brands"
