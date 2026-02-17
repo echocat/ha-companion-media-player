@@ -93,7 +93,7 @@ class MediaSessions:
     ) -> None:
         self._device_name = device_name
         self._values: dict[str, MediaSession] = {}
-        self._selected: MediaSession | None = None
+        self._selected: str | None = None
 
     @property
     def values(self) -> list[MediaSession]:
@@ -103,17 +103,18 @@ class MediaSessions:
         return self._values[package_name]
 
     def get_selected(self, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> MediaSession | None:
-        if self._selected and self._selected.package_name not in self._values:
+        selected = self._values[self._selected] if self._selected else None
+        if self._selected and not selected:
             self._selected = None
 
-        if self._selected:
-            state = self._selected.get_clean_state(session_timeout)
+        if selected:
+            state = selected.get_clean_state(session_timeout)
             match state:
                 # Simply select the existing one as long it is somehow in a meaningful state...
                 case MediaPlayerState.PLAYING | MediaPlayerState.PAUSED | MediaPlayerState.BUFFERING:
-                    return self._selected
+                    return selected
 
-        first: MediaSession | None = self._selected
+        first: MediaSession | None = selected
         # Nothing already selected... simply pick the next one which is playing/buffering...
         for candidate in self._values.values():
             if not first:
@@ -121,20 +122,21 @@ class MediaSessions:
             state = candidate.get_clean_state(session_timeout)
             match state:
                 case MediaPlayerState.PLAYING | MediaPlayerState.BUFFERING:
-                    self._selected = candidate
+                    self._selected = candidate.package_name
                     _LOGGER.debug("Switched to selected session %s (state=%s) on %s",
                                   candidate.package_name, state, self._device_name)
+                    return candidate
 
         # Use if existing one (if already there)...
-        if self._selected:
-            return self._selected
+        if selected:
+            return selected
 
         # Ok, just use the first one...
         if first:
-            self._selected = first
+            self._selected = first.package_name
             _LOGGER.debug("Switched to selected session %s (state=%s) on %s",
                           first.package_name, first.get_clean_state(session_timeout), self._device_name)
-            return self._selected
+            return first
 
         self._selected = None
         _LOGGER.debug("Switched to selected session NONE on %s", self._device_name)
@@ -148,7 +150,7 @@ class MediaSessions:
             elif self._values[v.package_name]:
                 _LOGGER.debug("Switched to selected session %s (state=%s) on %s",
                               v.package_name, v.state, self._device_name)
-                self._selected = v
+                self._selected = v.package_name
             else:
                 raise ValueError(f"Value {v.package_name} is not in the actual stored sessions.")
         elif isinstance(v, str):
@@ -160,7 +162,7 @@ class MediaSessions:
                 if vv:
                     _LOGGER.debug("Switched to selected session %s (state=%s) on %s",
                                   vv.package_name, vv.state, self._device_name)
-                    self._selected = vv
+                    self._selected = vv.package_name
                 else:
                     raise ValueError(f"Value {v} is not in the actual stored sessions.")
         else:

@@ -36,6 +36,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _handle_entity_created(hass, entry, entity_id)
         elif action == "remove":
             _handle_entity_removed(hass, entry, entity_id)
+        elif action == "update":
+            changes = event.data.get("changes", {})
+            _handle_entity_updated(hass, entry, entity_id, changes)
 
     entry.async_on_unload(
         hass.bus.async_listen(
@@ -91,6 +94,65 @@ def _handle_entity_removed(
     from .media_player import async_cleanup_removed_devices
 
     async_cleanup_removed_devices(hass, entry)
+
+
+@callback
+def _handle_entity_updated(
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        entity_id: str,
+        changes: dict,
+) -> None:
+    """Handle entity updates to sync disabled state from sensor to player."""
+    if "disabled_by" not in changes:
+        return
+
+    entity_registry = er.async_get(hass)
+    entity_entry = entity_registry.async_get(entity_id)
+
+    if entity_entry is None:
+        return
+    if entity_entry.domain != "sensor":
+        return
+    if not entity_entry.unique_id.endswith(MEDIA_SESSION_SENSOR_SUFFIX):
+        return
+
+    _sync_media_player_disabled_state(hass, entry, entity_entry)
+
+
+@callback
+def _sync_media_player_disabled_state(
+        hass: HomeAssistant,
+        entry: ConfigEntry,
+        sensor_entity_entry: er.RegistryEntry,
+) -> None:
+    """Sync disabled state from media session sensor to matching media player."""
+    if sensor_entity_entry.device_id is None:
+        return
+
+    entity_registry = er.async_get(hass)
+
+    for player_entity in entity_registry.entities.values():
+        if player_entity.config_entry_id != entry.entry_id:
+            continue
+        if player_entity.domain != "media_player":
+            continue
+        if player_entity.device_id != sensor_entity_entry.device_id:
+            continue
+
+        if sensor_entity_entry.disabled_by is not None:
+            if player_entity.disabled_by is None:
+                entity_registry.async_update_entity(
+                    player_entity.entity_id,
+                    disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+                )
+        elif player_entity.disabled_by == er.RegistryEntryDisabler.INTEGRATION:
+            entity_registry.async_update_entity(
+                player_entity.entity_id,
+                disabled_by=None,
+            )
+
+        return
 
 
 async def _async_update_listener(

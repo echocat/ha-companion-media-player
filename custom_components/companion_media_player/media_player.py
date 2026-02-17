@@ -20,7 +20,6 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import (
     async_track_state_change_event,
 )
-from homeassistant.helpers.typing import UndefinedType
 from sqlalchemy import Boolean
 
 from .artwork_resolver import ArtworkResolver
@@ -392,6 +391,8 @@ class MediaPlayer(MediaPlayerEntity):
                 device_id=self._device.id,
             )
 
+        self._sync_disabled_state_with_sensor()
+
         # Read initial sensor state if available
         state = self._hass.states.get(self._sensor_entity_id)
         if state is not None:
@@ -429,6 +430,29 @@ class MediaPlayer(MediaPlayerEntity):
 
         _LOGGER.info("Companion Media Player for %s initialized, tracking %s (volume sensor: %s)",
                      self.device_name, self._sensor_entity_id, self._volume_entity_id or "none")
+
+    @callback
+    def _sync_disabled_state_with_sensor(self) -> None:
+        """Sync disabled state from source sensor to this media player."""
+        if self.registry_entry is None:
+            return
+
+        entity_registry = er.async_get(self._hass)
+        sensor_entry = entity_registry.async_get(self._sensor_entity_id)
+        if sensor_entry is None:
+            return
+
+        if sensor_entry.disabled_by is not None:
+            if self.registry_entry.disabled_by is None:
+                entity_registry.async_update_entity(
+                    self.entity_id,
+                    disabled_by=er.RegistryEntryDisabler.INTEGRATION,
+                )
+        elif self.registry_entry.disabled_by == er.RegistryEntryDisabler.INTEGRATION:
+            entity_registry.async_update_entity(
+                self.entity_id,
+                disabled_by=None,
+            )
 
     @callback
     def _async_sensor_state_changed(self, event: Event[EventStateChangedData]) -> Any:
