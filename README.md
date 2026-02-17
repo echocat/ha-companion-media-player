@@ -1,10 +1,10 @@
 # Companion Media Player
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/echocat/ha-companion-media-player)](https://github.com/echocat/ha-companion-media-player/releases)
+[![GitHub license](https://img.shields.io/github/license/echocat/ha-companion-media-player)](https://github.com/echocat/ha-companion-media-player/blob/main/LICENSE)
 
 A Home Assistant custom integration that creates **Media Player entities** from the **Android Companion App's Media Session sensors**.
-
-## ⚠️⚠️⚠️ STILL WORK IN PROGRESS ⚠️⚠️⚠️
 
 ## Features
 
@@ -24,8 +24,11 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 
 ## Installation
 
-### HACS (Recommended)
+### Quick Add to HACS
 
+[![Open your Home Assistant instance and add this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=echocat&repository=ha-companion-media-player&category=integration)
+
+### HACS *(recommended)*
 1. Open HACS in your Home Assistant instance
 2. Click on **Integrations**
 3. Click the three dots in the top right and select **Custom repositories**
@@ -33,10 +36,15 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 5. Click **Install**
 6. Restart Home Assistant
 
-### Manual
+<details>
+<summary><h3>Manual</h3></summary>
 
-1. Copy the `custom_components/companion_media_player` folder into your Home Assistant's `custom_components` directory
-2. Restart Home Assistant
+You probably **do not** want to do this! Use the HACS method above unless you know what you are doing and have a good reason as to why you are installing manually
+
+1. Download the latest release
+2. Copy the `custom_components/companion_media_player` folder into your Home Assistant's `custom_components` directory
+3. Restart Home Assistant
+</details>
 
 ## Configuration
 
@@ -50,46 +58,12 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| Session Timeout | 30 minutes | Time after which an inactive media session is considered stale |
+| Session Timeout | 30 minutes | Time after which an inactive media session is considered idle (regardless if it is playing or not). |
 | Volume Max | 15 | Maximum volume level of the Android device (used for 0.0–1.0 mapping) |
-
-## How It Works
-
-### State Tracking
-
-The Android Companion App provides usually a `sensor.<device>_media_session` entity that reports the current media playback state and metadata. This integration listens for state changes on that sensor and caches the state of each individual media session (identified by package name).
-
-### Media Control
-
-Control commands are sent via Home Assistant's notification service (e.g. `notify.mobile_app_<device>`), using the Companion App's `command_media` and `command_volume_level` notification commands. After each command, a `command_update_sensors` notification is sent to trigger a faster state update.
-
-### Source Selection
-
-Each active media session on a device (e.g., Spotify, YouTube Music) is represented as a **source**. You can switch between sources to control different apps. The most recently active session is selected by default.
 
 ## Development
 
-This project uses [VS Code DevContainers](https://code.visualstudio.com/docs/devcontainers/containers) for development.
-
-### Prerequisites
-
-- [Docker](https://www.docker.com/) installed and running
-- [VS Code](https://code.visualstudio.com/) with the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers)
-
-### Getting Started
-
-1. Open this repository in VS Code
-2. When prompted, click **"Reopen in Container"** (or run `Dev Containers: Reopen in Container` from the command palette)
-3. Wait for the container to build (first time takes a few minutes to install HA)
-4. Home Assistant starts automatically on port **8123**
-5. Open http://localhost:8123 to access the HA instance
-
-### Dev Workflow
-
-- **Code changes**: Edit files in `custom_components/companion_media_player/` — they're symlinked into HA's config
-- **Restart HA**: Run `pkill -f hass; .devcontainer/post-start.sh` in the terminal
-- **View logs**: `tail -f /tmp/hass.log`
-- **Debug logs**: Already enabled for `custom_components.companion_media_player` via `/config/configuration.yaml`
+To see more details how to develop with this project - see the [DEVELOPMENT.md](DEVELOPMENT.md) file.
 
 ## License
 
