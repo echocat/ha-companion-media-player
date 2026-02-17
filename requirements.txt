@@ -3,3 +3,4 @@ homeassistant>=2026.1.0
 pip>=21.3.1
 pymicro-vad==1.0.1
 pyspeex_noise==1.0.2
+sqlalchemy

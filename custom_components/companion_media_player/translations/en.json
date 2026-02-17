@@ -10,6 +10,13 @@
       "already_configured": "Companion Media Player is already configured."
     }
   },
+  "entity": {
+    "media_player": {
+      "player": {
+        "name": "Media Player"
+      }
+    }
+  },
   "options": {
     "step": {
       "init": {

@@ -18,9 +18,6 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
-# Spotify oEmbed endpoint — public, no auth needed
-_SPOTIFY_OEMBED_URL = "https://open.spotify.com/oembed"
-
 # How long to cache a resolved image URL (seconds)
 _CACHE_TTL = 3600  # 1 hour
 
@@ -57,11 +54,12 @@ class ArtworkResolver:
         if cached is not _SENTINEL:
             return cached
 
-        # Attempt provider-specific resolution
-        image_url: str | None = None
-
-        if (package_name == "com.spotify.music" or package_name == "com.spotify.kids") and self._is_spotify_uri(media_id):
-            image_url = await self._resolve_spotify(media_id)
+        image_url: str | None
+        match package_name:
+            case "com.spotify.music" | "com.spotify.kids":
+                image_url = await self._resolve_spotify(media_id)
+            case _:
+                image_url = None
 
         # Cache the result (even None to avoid repeated failed lookups)
         self._put_cache(media_id, image_url)
@@ -97,22 +95,20 @@ class ArtworkResolver:
         for k in expired:
             del self._cache[k]
 
-    @staticmethod
-    def _is_spotify_uri(media_id: str) -> bool:
-        """Check if a media ID looks like a Spotify URI."""
-        return media_id.startswith("spotify:track:")
-
     async def _resolve_spotify(self, media_id: str) -> str | None:
         """Resolve artwork for a Spotify track via the oEmbed API.
 
         The oEmbed endpoint is public and does not require authentication.
         It returns JSON including a ``thumbnail_url`` field (300x300 album art).
         """
+        if not media_id.startswith("spotify:track:"):
+            return None
+
         session = async_get_clientsession(self._hass)
         try:
             async with asyncio.timeout(_REQUEST_TIMEOUT):
                 resp = await session.get(
-                    _SPOTIFY_OEMBED_URL,
+                    "https://open.spotify.com/oembed",
                     params={"url": media_id},
                 )
                 if resp.status != 200:

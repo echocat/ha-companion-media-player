@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from typing import Any
 
 from homeassistant.components.media_player import (
@@ -20,8 +19,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import (
     async_track_state_change_event,
-    async_track_time_interval,
 )
+from homeassistant.helpers.typing import UndefinedType
 from sqlalchemy import Boolean
 
 from .artwork_resolver import ArtworkResolver
@@ -45,25 +44,6 @@ from .device_discovery import discover_devices
 from .media_session import MediaSession, MediaSessions
 
 _LOGGER = logging.getLogger(__name__)
-
-# Cleanup interval for stale sessions
-_CLEANUP_INTERVAL = timedelta(minutes=5)
-
-# Mapping from companion app sensor states to HA MediaPlayerState
-_STATE_MAP: dict[str, MediaPlayerState] = {
-    "Playing": MediaPlayerState.PLAYING,
-    "playing": MediaPlayerState.PLAYING,
-    "Paused": MediaPlayerState.PAUSED,
-    "paused": MediaPlayerState.PAUSED,
-    "Stopped": MediaPlayerState.IDLE,
-    "stopped": MediaPlayerState.IDLE,
-    "Buffering": MediaPlayerState.BUFFERING,
-    "buffering": MediaPlayerState.BUFFERING,
-    "Error": MediaPlayerState.IDLE,
-    "error": MediaPlayerState.IDLE,
-    "idle": MediaPlayerState.IDLE,
-    "Idle": MediaPlayerState.IDLE,
-}
 
 
 @callback
@@ -106,11 +86,8 @@ def async_discover_new_devices(
             volume_entity_id=disc.volume_entity_id,
             session_timeout=session_timeout,
         ))
-        _LOGGER.info(
-            "Dynamically discovered new device '%s' with media session sensor %s",
-            disc.device_name,
-            disc.media_session_entity_id,
-        )
+        _LOGGER.info("Dynamically discovered new device '%s' with media session sensor %s",
+                     disc.device_name, disc.media_session_entity_id)
 
     if new_entities:
         async_add_entities(new_entities)
@@ -147,11 +124,8 @@ def async_cleanup_removed_devices(
 
         device_id = entity_entry.unique_id.removeprefix(prefix)
         if device_id not in valid_device_ids:
-            _LOGGER.info(
-                "Removing entity %s (device %s no longer has a media session sensor)",
-                entity_entry.entity_id,
-                device_id,
-            )
+            _LOGGER.info("Removing entity %s (device %s no longer has a media session sensor)",
+                         entity_entry.entity_id, device_id)
             entity_registry.async_remove(entity_entry.entity_id)
             tracked_device_ids.discard(device_id)
 
@@ -181,11 +155,8 @@ def _cleanup_orphaned_entities(
 
         device_id = entity_entry.unique_id.removeprefix(prefix)
         if device_id not in valid_device_ids:
-            _LOGGER.info(
-                "Removing orphaned entity %s (device %s no longer has a media session sensor)",
-                entity_entry.entity_id,
-                device_id,
-            )
+            _LOGGER.info("Removing orphaned entity %s (device %s no longer has a media session sensor)",
+                         entity_entry.entity_id, device_id)
             entity_registry.async_remove(entity_entry.entity_id)
 
 
@@ -228,11 +199,8 @@ async def async_setup_entry(
             volume_entity_id=disc.volume_entity_id,
             session_timeout=session_timeout,
         ))
-        _LOGGER.info(
-            "Discovered device '%s' with media session sensor %s",
-            disc.device_name,
-            disc.media_session_entity_id,
-        )
+        _LOGGER.info("Discovered device '%s' with media session sensor %s",
+                     disc.device_name, disc.media_session_entity_id)
 
     if entities:
         async_add_entities(entities)
@@ -244,6 +212,7 @@ class MediaPlayer(MediaPlayerEntity):
     """A media player entity backed by Android Companion App media sessions."""
 
     _attr_has_entity_name = True
+    _attr_translation_key = "player"
     _attr_device_class = MediaPlayerDeviceClass.SPEAKER
     _attr_should_poll = False
 
@@ -260,25 +229,23 @@ class MediaPlayer(MediaPlayerEntity):
     ) -> None:
         """Initialize the media player."""
         self._hass = hass
+        self._device = device
         self._config_entry = config_entry
         self._sensor_entity_id = media_session_entity_id
         self._volume_max = volume_max
         self._volume_level: float | None = None
         self._volume_entity_id = volume_entity_id
         self._notification_service_id = notification_service_id
-        self._device = device
         self._session_timeout = session_timeout
-        self._sessions: MediaSessions = MediaSessions()
+        self._sessions: MediaSessions = MediaSessions(self.device_name)
         self._artwork_resolver = ArtworkResolver(hass)
 
         # Entity attributes
-        self._attr_unique_id = f"{DOMAIN}_{device.id}"
-        self._attr_name = self.device_name
+        self._attr_unique_id = f"{device.id}_media_player"
 
     @property
     def supported_features(self) -> MediaPlayerEntityFeature:
-
-        features: MediaPlayerEntityFeature = 0
+        features: MediaPlayerEntityFeature = MediaPlayerEntityFeature(0)
 
         # Only if there is a notification service, we can make this one controllable...
         if self._notification_service_id is not None:
@@ -301,10 +268,7 @@ class MediaPlayer(MediaPlayerEntity):
     def state(self) -> MediaPlayerState | None:
         """Return the state of the media player."""
         session = self.selected_session
-        if session is None:
-            return MediaPlayerState.IDLE
-
-        return _STATE_MAP.get(session.state, MediaPlayerState.IDLE)
+        return session.get_clean_state(self.session_timeout) if session else MediaPlayerState.IDLE
 
     @property
     def media_title(self) -> str | None:
@@ -365,7 +329,7 @@ class MediaPlayer(MediaPlayerEntity):
     @property
     def source_list(self) -> list[str] | None:
         """Return list of friendly names of active sessions."""
-        result = [session.friendly_name for session in self.active_sessions]
+        result = [session.friendly_name for session in self.sessions]
         return result if result else None
 
     @property
@@ -401,12 +365,12 @@ class MediaPlayer(MediaPlayerEntity):
         }
 
         # Add info about all active sessions
-        active = self.active_sessions
-        attrs["active_sessions_count"] = len(active)
-        for session in active:
+        sessions = self.sessions
+        attrs["sessions_count"] = len(sessions)
+        for session in sessions:
             prefix = f"session_{session.package_name}"
             attrs[f"{prefix}_media_id"] = session.media_id
-            attrs[f"{prefix}_state"] = session.state
+            attrs[f"{prefix}_state"] = session.get_clean_state(self.session_timeout)
             attrs[f"{prefix}_title"] = session.title
             attrs[f"{prefix}_artist"] = session.artist
             attrs[f"{prefix}_album"] = session.album
@@ -429,9 +393,9 @@ class MediaPlayer(MediaPlayerEntity):
             )
 
         # Read initial sensor state if available
-        current_state = self._hass.states.get(self._sensor_entity_id)
-        if current_state is not None:
-            self._sessions.update_from_sensor(self.device_name, current_state)
+        state = self._hass.states.get(self._sensor_entity_id)
+        if state is not None:
+            self._sessions.update_from_sensor(state)
             # Resolve artwork for initially discovered sessions
             await self._async_resolve_artwork()
 
@@ -463,37 +427,20 @@ class MediaPlayer(MediaPlayerEntity):
                 self.device_name,
             )
 
-        # Periodic cleanup of stale sessions
-        self.async_on_remove(
-            async_track_time_interval(
-                self._hass,
-                self._async_cleanup_stale_sessions,
-                _CLEANUP_INTERVAL,
-            )
-        )
-
-        _LOGGER.info(
-            "Companion Media Player for %s initialized, tracking %s (volume sensor: %s)",
-            self.device_name,
-            self._sensor_entity_id,
-            self._volume_entity_id or "none",
-        )
+        _LOGGER.info("Companion Media Player for %s initialized, tracking %s (volume sensor: %s)",
+                     self.device_name, self._sensor_entity_id, self._volume_entity_id or "none")
 
     @callback
     def _async_sensor_state_changed(self, event: Event[EventStateChangedData]) -> Any:
         """Handle state changes from the media session sensor."""
-        new_state = event.data.get("new_state")
-        if new_state is None:
+        state = event.data.get("new_state")
+        if state is None:
             return
 
-        _LOGGER.debug(
-            "Sensor state changed for %s: %s (attrs: %s)",
-            self._sensor_entity_id,
-            new_state.state,
-            new_state.attributes,
-        )
+        _LOGGER.debug("Sensor state changed for %s: %s (attrs: %s)",
+                      self._sensor_entity_id, state.state, state.attributes)
 
-        self._sessions.update_from_sensor(self.device_name, new_state)
+        self._sessions.update_from_sensor(state)
         self.async_write_ha_state()
 
         # Resolve artwork asynchronously (non-blocking)
@@ -502,17 +449,14 @@ class MediaPlayer(MediaPlayerEntity):
     @callback
     def _async_volume_state_changed(self, event: Event[EventStateChangedData]) -> Any:
         """Handle state changes from the volume level sensor."""
-        new_state = event.data.get("new_state")
-        if new_state is None:
+        state = event.data.get("new_state")
+        if state is None:
             return
 
-        _LOGGER.debug(
-            "Volume sensor state changed for %s: %s",
-            self._volume_entity_id,
-            new_state.state,
-        )
+        _LOGGER.debug("Volume sensor state changed for %s: %s",
+                      self._volume_entity_id, state.state)
 
-        self._update_volume_from_state(new_state)
+        self._update_volume_from_state(state)
         self.async_write_ha_state()
 
     def _update_volume_from_state(self, state: Any) -> None:
@@ -537,24 +481,12 @@ class MediaPlayer(MediaPlayerEntity):
         else:
             self._volume_level = None
 
-    @callback
-    def _async_cleanup_stale_sessions(self, _now: Any = None) -> None:
-        """Periodically clean up stale sessions."""
-        removed = self._sessions.cleanup_stale(self.device_name, self.session_timeout)
-        if removed:
-            _LOGGER.debug(
-                "Cleaned up stale sessions for %s: %s",
-                self.device_name,
-                removed,
-            )
-            self.async_write_ha_state()
-
     # --- Artwork Resolution ---
 
     async def _async_resolve_artwork(self) -> None:
         """Resolve artwork for all active sessions and update state if changed."""
         changed = False
-        for session in self.active_sessions:
+        for session in self.sessions:
             image_url = await self._artwork_resolver.resolve(
                 session.media_id, session.package_name
             )
@@ -590,10 +522,8 @@ class MediaPlayer(MediaPlayerEntity):
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level (0...1 mapped to 0...volume_max)."""
         if self._volume_entity_id is None:
-            _LOGGER.warning(
-                "Cannot set volume: no volume sensor available for %s",
-                self.device_name,
-            )
+            _LOGGER.warning("Cannot set volume: no volume sensor available for %s",
+                            self.device_name)
             return
 
         android_volume = round(volume * self._volume_max)
@@ -626,22 +556,18 @@ class MediaPlayer(MediaPlayerEntity):
         """
         normalized = source_name.strip().casefold()
 
-        selected = self._sessions.get_selected(self.device_name, self.session_timeout)
-        for session in self.active_sessions:
+        selected = self._sessions.get_selected(self.session_timeout)
+        for session in self.sessions:
             friendly = session.friendly_name.strip().casefold()
             if friendly == normalized or session.package_name.strip().casefold() == normalized:
                 if not selected or selected.package_name != session.package_name:
-                    self._sessions.update_selected(self.device_name, session)
+                    self._sessions.set_selected(session)
                     return True
                 return False
 
         available_sources = ", ".join(self.source_list)
-        _LOGGER.warning(
-            "Source '%s' not found in active sessions for %s. Available: %s",
-            source_name,
-            self.device_name,
-            available_sources or "none",
-        )
+        _LOGGER.warning("Source '%s' not found in active sessions for %s. Available: %s",
+                        source_name, self.device_name, available_sources or "none")
         return False
 
     async def async_select_source(self, source: str) -> None:
@@ -660,7 +586,7 @@ class MediaPlayer(MediaPlayerEntity):
 
     @property
     def device_name(self) -> str:
-        return self.device.name
+        return self.device.name_by_user or self.device.name
 
     @property
     def session_timeout(self) -> int:
@@ -672,14 +598,9 @@ class MediaPlayer(MediaPlayerEntity):
         return self._sessions.values
 
     @property
-    def active_sessions(self) -> list[MediaSession]:
-        """Return only sessions that are still within the timeout window."""
-        return self._sessions.by_is_active(self.session_timeout)
-
-    @property
     def selected_session(self) -> MediaSession | None:
         """Return the currently selected source (package name)."""
-        return self._sessions.get_selected(self.device_name, self.session_timeout)
+        return self._sessions.get_selected(self.session_timeout)
 
     @property
     def notification_service_id(self) -> str:
@@ -691,11 +612,8 @@ class MediaPlayer(MediaPlayerEntity):
         """Send a media command to the device via notification."""
         session = self.selected_session
         if session is None:
-            _LOGGER.debug(
-                "Cannot send command '%s': no active session on %s. Ignoring...",
-                command,
-                self.device_name,
-            )
+            _LOGGER.debug("Cannot send command '%s': no active session on %s. Ignoring...",
+                          command, self.device_name)
             return
 
         try:
@@ -704,10 +622,7 @@ class MediaPlayer(MediaPlayerEntity):
                 "media_package_name": session.package_name,
             })
             _LOGGER.debug("Sent media command '%s' to %s (package: %s)",
-                          command,
-                          self.device_name,
-                          session.package_name,
-                          )
+                          command, self.device_name, session.package_name)
         except Exception as err:
             _LOGGER.error("Failed to send media command '%s' to %s: %s", command, self.device_name, err, exc_info=True)
 
@@ -734,5 +649,4 @@ class MediaPlayer(MediaPlayerEntity):
             _LOGGER.debug("Sensor update on %s successfully triggered.", self.device_name)
         except Exception as err:
             _LOGGER.debug("Failed to trigger sensor update on %s. This is not critical; ignoring... %s",
-                          self.device_name,
-                          err, exc_info=True)
+                          self.device_name, err, exc_info=True)

@@ -37,25 +37,3 @@ MEDIA_CMD_PLAY_PAUSE = "play_pause"
 
 # Volume stream
 VOLUME_STREAM_MUSIC = "music_stream"
-
-# Well-known Android package names for friendly display
-KNOWN_APPS: dict[str, str] = {
-    "com.spotify.music": "Spotify",
-    "com.spotify.kids": "Spotify Kids",
-    "com.google.android.apps.youtube.music": "YouTube Music",
-    "com.google.android.youtube": "YouTube",
-    "com.google.android.apps.podcasts": "Google Podcasts",
-    "org.videolan.vlc": "VLC",
-    "com.plexapp.android": "Plex",
-    "com.aspiro.tidal": "Tidal",
-    "com.amazon.mp3": "Amazon Music",
-    "com.apple.android.music": "Apple Music",
-    "com.pandora.android": "Pandora",
-    "com.soundcloud.android": "SoundCloud",
-    "fm.castbox.audiobook.radio.podcast": "Castbox",
-    "com.google.android.apps.youtube.creator": "YouTube Studio",
-    "com.netflix.mediaclient": "Netflix",
-    "com.disney.disneyplus": "Disney+",
-    "tv.twitch.android.app": "Twitch",
-    "tunein.player": "TuneIn",
-}
