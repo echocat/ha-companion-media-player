@@ -100,11 +100,11 @@ class MediaSessions:
         return sorted(self._values.values(), key=lambda s: s.package_name)
 
     def by_package_name(self, package_name: str) -> MediaSession | None:
-        return self._values[package_name]
+        return self._values.get(package_name)
 
     def get_selected(self, session_timeout: int = DEFAULT_SESSION_TIMEOUT) -> MediaSession | None:
-        selected = self._values[self._selected] if self._selected else None
-        if self._selected and not selected:
+        selected = self._values.get(self._selected) if self._selected else None
+        if self._selected and selected is None:
             self._selected = None
 
         if selected:
@@ -147,7 +147,7 @@ class MediaSessions:
             if not v.package_name:
                 _LOGGER.debug("Switched to selected session NONE on %s", self._device_name)
                 self._selected = None
-            elif self._values[v.package_name]:
+            elif v.package_name in self._values:
                 _LOGGER.debug("Switched to selected session %s (state=%s) on %s",
                               v.package_name, v.state, self._device_name)
                 self._selected = v.package_name
@@ -158,8 +158,8 @@ class MediaSessions:
                 self._selected = None
                 _LOGGER.debug("Switched to selected session NONE on %s", self._device_name)
             else:
-                vv = self._values[v]
-                if vv:
+                vv = self._values.get(v)
+                if vv is not None:
                     _LOGGER.debug("Switched to selected session %s (state=%s) on %s",
                                   vv.package_name, vv.state, self._device_name)
                     self._selected = vv.package_name
@@ -208,6 +208,10 @@ class MediaSessions:
                 )
 
         self._values = buf
+        if self._selected and self._selected not in self._values:
+            _LOGGER.debug("Selected session %s no longer exists on %s; resetting selection.",
+                          self._selected, self._device_name)
+            self._selected = None
 
 
 _known_apps: dict[str, str] = {
