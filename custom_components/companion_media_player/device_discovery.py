@@ -20,7 +20,7 @@ class DiscoveredDevice:
 
     device: dr.DeviceEntry
     media_session_entity_id: str
-    volume_entity_id: str | None = None
+    volume_sensor: VolumeSensor | None = None
     notification_service_id: str | None = None
 
     @property
@@ -56,33 +56,50 @@ def discover_devices(hass: HomeAssistant) -> list[DiscoveredDevice]:
             continue
 
         # Look for a volume_level_music sensor on the same device
-        volume_entity_id = _find_volume_sensor(entity_registry, entity.device_id)
+        volume_sensor = _find_volume_sensor(hass, entity_registry, entity.device_id)
         notification_service_id = _find_notification_service(hass, device)
 
         result.append(DiscoveredDevice(
             device=device,
             media_session_entity_id=entity.entity_id,
-            volume_entity_id=volume_entity_id,
+            volume_sensor=volume_sensor,
             notification_service_id=notification_service_id,
         ))
 
     return result
 
 
+@dataclass
+class VolumeSensor:
+    entity_id: str
+    min: int
+    max: int
+
 def _find_volume_sensor(
+        hass: HomeAssistant,
         entity_registry: er.EntityRegistry,
         device_id: str,
-) -> str | None:
+) -> VolumeSensor | None:
     """Find the volume_level_music sensor entity on the given device."""
     for entity in entity_registry.entities.values():
         if entity.device_id != device_id:
             continue
         if entity.domain != "sensor":
             continue
-        if entity.unique_id.endswith(VOLUME_LEVEL_MUSIC_SENSOR_SUFFIX):
-            return entity.entity_id
-    return None
+        if not entity.unique_id.endswith(VOLUME_LEVEL_MUSIC_SENSOR_SUFFIX):
+            continue
+        state = hass.states.get(entity.entity_id)
+        if not state:
+            continue
+        min_raw = state.attributes.get("min")
+        max_raw = state.attributes.get("max")
+        min_value = int(float(min_raw)) if min_raw else 0
+        max_value = int(float(max_raw)) if max_raw else 0
+        if not max_raw:
+            continue
+        return VolumeSensor(entity_id=entity.entity_id, min=min_value, max=max_value)
 
+    return None
 
 def _find_notification_service(hass: HomeAssistant, device: dr.DeviceEntry) -> str | None:
     for idf in device.identifiers:

@@ -12,9 +12,7 @@ from homeassistant.core import callback
 
 from .const import (
     CONF_SESSION_TIMEOUT,
-    CONF_VOLUME_MAX,
     DEFAULT_SESSION_TIMEOUT,
-    DEFAULT_VOLUME_MAX,
     DOMAIN,
 )
 
@@ -72,9 +70,6 @@ class CompanionMediaPlayerOptionsFlow(OptionsFlow):
         current_timeout = self.config_entry.options.get(
             CONF_SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT
         )
-        current_volume_max = self.config_entry.options.get(
-            CONF_VOLUME_MAX, DEFAULT_VOLUME_MAX
-        )
 
         return self.async_show_form(
             step_id="init",
@@ -84,10 +79,6 @@ class CompanionMediaPlayerOptionsFlow(OptionsFlow):
                         CONF_SESSION_TIMEOUT,
                         default=current_timeout,
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=1440)),
-                    vol.Optional(
-                        CONF_VOLUME_MAX,
-                        default=current_volume_max,
-                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=100)),
                 }
             ),
         )

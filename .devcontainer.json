@@ -12,13 +12,14 @@
     "WORKSPACE": "${containerWorkspaceFolder}"
   },
   "postCreateCommand": {
+    "apt-update": ["sudo", "apt", "update"],
     "apt": ["sudo", "apt", "install", "-y", "ffmpeg", "python3-dev", "build-essential", "libturbojpeg0", "libpcap-dev"],
     "go2rtc": ["bash", "-c", "sudo curl -L https://github.com/AlexxIT/go2rtc/releases/latest/download/go2rtc_linux_amd64 -o /usr/local/bin/go2rtc && sudo chmod +x /usr/local/bin/go2rtc"],
     "haDirectory": ["mkdir", "-p", "/home/vscode/.homeassistant"],
     "configuration": ["ln", "-s", "${containerWorkspaceFolder}/.devcontainer/configuration.yaml", "/home/vscode/.homeassistant/configuration.yaml"],
     "sourceCode": ["ln", "-s", "${containerWorkspaceFolder}/custom_components", "/home/vscode/.homeassistant/custom_components"],
-    "pip": ["python3", "-m", "pip","install", "--requirement", "crequirements.txt"],
-    "hacs": ["bash", "-c", "curl -sfSL https://get.hacs.xyz | sudo bash -"]
+    "pip": ["python3", "-m", "pip","install", "--requirement", "requirements.txt"],
+    "hacs": ["bash", "-c", "hass --version > /home/vscode/.homeassistant/.HA_VERSION && curl -sfSL https://get.hacs.xyz | sudo bash -"]
   },
   "customizations": {
     "vscode": {

@@ -23,8 +23,7 @@
         "title": "Companion Media Player Options",
         "description": "Configure the default behavior for all media players.",
         "data": {
-          "session_timeout": "Session timeout (minutes)",
-          "volume_max": "Device max volume level"
+          "session_timeout": "Session timeout (minutes)"
         }
       }
     }
