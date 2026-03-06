@@ -25,8 +25,7 @@ env/
 .DS_Store
 Thumbs.db
 
-# Home Assistant config (generated inside devcontainer at /config)
-# Nothing to ignore here since it lives outside the workspace
+/custom_components/hacs
 
 # Environment
 .env

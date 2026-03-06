@@ -25,8 +25,6 @@ from sqlalchemy import Boolean
 from .artwork_resolver import ArtworkResolver
 from .const import (
     CONF_SESSION_TIMEOUT,
-    CONF_VOLUME_MAX,
-    DEFAULT_VOLUME_MAX,
     DOMAIN,
     MEDIA_CMD_NEXT,
     MEDIA_CMD_PAUSE,
@@ -39,7 +37,7 @@ from .const import (
     NOTIFY_COMMAND_UPDATE_SENSORS,
     DEFAULT_SESSION_TIMEOUT,
 )
-from .device_discovery import discover_devices
+from .device_discovery import discover_devices, VolumeSensor
 from .media_session import MediaSession, MediaSessions
 
 _LOGGER = logging.getLogger(__name__)
@@ -65,7 +63,6 @@ def async_discover_new_devices(
     session_timeout = config_entry.options.get(
         CONF_SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT
     )
-    volume_max = config_entry.options.get(CONF_VOLUME_MAX, DEFAULT_VOLUME_MAX)
 
     discovered = discover_devices(hass)
     new_entities: list[MediaPlayer] = []
@@ -81,8 +78,7 @@ def async_discover_new_devices(
             device=disc.device,
             media_session_entity_id=disc.media_session_entity_id,
             notification_service_id=disc.notification_service_id,
-            volume_max=volume_max,
-            volume_entity_id=disc.volume_entity_id,
+            volume_sensor=disc.volume_sensor,
             session_timeout=session_timeout,
         ))
         _LOGGER.info("Dynamically discovered new device '%s' with media session sensor %s",
@@ -169,7 +165,6 @@ async def async_setup_entry(
     session_timeout = config_entry.options.get(
         CONF_SESSION_TIMEOUT, DEFAULT_SESSION_TIMEOUT
     )
-    volume_max = config_entry.options.get(CONF_VOLUME_MAX, DEFAULT_VOLUME_MAX)
 
     # Track which device IDs already have an entity
     tracked_device_ids: set[str] = set()
@@ -194,8 +189,7 @@ async def async_setup_entry(
             device=disc.device,
             media_session_entity_id=disc.media_session_entity_id,
             notification_service_id=disc.notification_service_id,
-            volume_max=volume_max,
-            volume_entity_id=disc.volume_entity_id,
+            volume_sensor=disc.volume_sensor,
             session_timeout=session_timeout,
         ))
         _LOGGER.info("Discovered device '%s' with media session sensor %s",
@@ -221,8 +215,7 @@ class MediaPlayer(MediaPlayerEntity):
             config_entry: ConfigEntry,
             device: dr.DeviceEntry,
             media_session_entity_id: str,
-            volume_max: int,
-            volume_entity_id: str | None = None,
+            volume_sensor: VolumeSensor | None = None,
             notification_service_id: str | None = None,
             session_timeout: int = DEFAULT_SESSION_TIMEOUT,
     ) -> None:
@@ -231,9 +224,8 @@ class MediaPlayer(MediaPlayerEntity):
         self._device = device
         self._config_entry = config_entry
         self._sensor_entity_id = media_session_entity_id
-        self._volume_max = volume_max
+        self._volume_sensor = volume_sensor
         self._volume_level: float | None = None
-        self._volume_entity_id = volume_entity_id
         self._notification_service_id = notification_service_id
         self._session_timeout = session_timeout
         self._sessions: MediaSessions = MediaSessions(self.device_name)
@@ -241,6 +233,14 @@ class MediaPlayer(MediaPlayerEntity):
 
         # Entity attributes
         self._attr_unique_id = f"{device.id}_media_player"
+
+    @property
+    def device_info(self) -> dict[str, Any]:
+        """Attach this entity to the already discovered mobile app device."""
+        return {
+            "identifiers": self._device.identifiers,
+            "connections": self._device.connections,
+        }
 
     @property
     def supported_features(self) -> MediaPlayerEntityFeature:
@@ -258,7 +258,7 @@ class MediaPlayer(MediaPlayerEntity):
             )
 
             # Also: Only if there is a volume entity, we can make the volume controllable...
-            if self._volume_entity_id is not None:
+            if self._volume_sensor is not None:
                 features |= MediaPlayerEntityFeature.VOLUME_SET
 
         return features
@@ -358,10 +358,13 @@ class MediaPlayer(MediaPlayerEntity):
         """Return extra state attributes with session details."""
         attrs: dict[str, Any] = {
             "sensor_entity_id": self._sensor_entity_id,
-            "volume_entity_id": self._volume_entity_id,
             "device_name": self.device_name,
-            "volume_max": self._volume_max,
         }
+
+        if self._volume_sensor:
+            attrs["volume_entity_id"] = self._volume_sensor.entity_id
+            attrs["volume_min"] = self._volume_sensor.min
+            attrs["volume_max"] = self._volume_sensor.max
 
         # Add info about all active sessions
         sessions = self.sessions
@@ -382,15 +385,6 @@ class MediaPlayer(MediaPlayerEntity):
         """Subscribe to sensor state changes when added to HA."""
         await super().async_added_to_hass()
 
-        # Link this entity to the source device without registering our
-        # config entry on it (which would create a duplicate device entry).
-        if self._device is not None and self.registry_entry is not None:
-            entity_registry = er.async_get(self._hass)
-            entity_registry.async_update_entity(
-                self.entity_id,
-                device_id=self._device.id,
-            )
-
         self._sync_disabled_state_with_sensor()
 
         # Read initial sensor state if available
@@ -410,26 +404,26 @@ class MediaPlayer(MediaPlayerEntity):
         )
 
         # Subscribe to volume sensor if available
-        if self._volume_entity_id is not None:
-            volume_state = self._hass.states.get(self._volume_entity_id)
+        if self._volume_sensor:
+            volume_state = self._hass.states.get(self._volume_sensor.entity_id)
             if volume_state is not None:
                 self._update_volume_from_state(volume_state)
 
             self.async_on_remove(
                 async_track_state_change_event(
                     self._hass,
-                    [self._volume_entity_id],
+                    [self._volume_sensor.entity_id],
                     self._async_volume_state_changed,
                 )
             )
             _LOGGER.debug(
                 "Tracking volume sensor %s for %s",
-                self._volume_entity_id,
+                self._volume_sensor,
                 self.device_name,
             )
 
         _LOGGER.info("Companion Media Player for %s initialized, tracking %s (volume sensor: %s)",
-                     self.device_name, self._sensor_entity_id, self._volume_entity_id or "none")
+                     self.device_name, self._sensor_entity_id, self._volume_sensor or "none")
 
     @callback
     def _sync_disabled_state_with_sensor(self) -> None:
@@ -478,32 +472,35 @@ class MediaPlayer(MediaPlayerEntity):
             return
 
         _LOGGER.debug("Volume sensor state changed for %s: %s",
-                      self._volume_entity_id, state.state)
+                      self._volume_sensor, state.state)
 
         self._update_volume_from_state(state)
         self.async_write_ha_state()
 
     def _update_volume_from_state(self, state: Any) -> None:
         """Parse the volume sensor state and update internal volume level."""
+        if not self._volume_sensor or not self._volume_sensor.max:
+            self._volume_level = None
+            return
+
         if state is None or state.state in ("unavailable", "unknown"):
             self._volume_level = None
             return
 
         try:
-            android_volume = int(state.state)
+            value = int(state.state)
         except (ValueError, TypeError):
             _LOGGER.debug(
                 "Could not parse volume state '%s' from %s",
                 state.state,
-                self._volume_entity_id,
+                self._volume_sensor.entity_id,
             )
             self._volume_level = None
             return
 
-        if self._volume_max > 0:
-            self._volume_level = android_volume / self._volume_max
-        else:
-            self._volume_level = None
+        value_min = 0 if not self._volume_sensor.min else self._volume_sensor.min
+        value_range = self._volume_sensor.max - value_min
+        self._volume_level = (value - value_min) / value_range
 
     # --- Artwork Resolution ---
 
@@ -545,18 +542,23 @@ class MediaPlayer(MediaPlayerEntity):
 
     async def async_set_volume_level(self, volume: float) -> None:
         """Set volume level (0...1 mapped to 0...volume_max)."""
-        if self._volume_entity_id is None:
+        if self._volume_sensor is None:
             _LOGGER.warning("Cannot set volume: no volume sensor available for %s",
                             self.device_name)
             return
+        if not self._volume_sensor.max:
+            _LOGGER.warning("Cannot set volume: no sensor available %s does not have a valid max value for %s",
+                            self._volume_sensor.entity_id, self.device_name)
+            return
 
-        android_volume = round(volume * self._volume_max)
-        android_volume = max(0, min(android_volume, self._volume_max))
+        value_min = 0 if not self._volume_sensor.min else self._volume_sensor.min
+        value_range = self._volume_sensor.max - value_min
+        value = max(0, min(round(volume * value_range), value_range)) + value_min
 
         try:
             await self._async_send_notify_command(NOTIFY_COMMAND_VOLUME, {
                 "media_stream": VOLUME_STREAM_MUSIC,
-                "command": android_volume,
+                "command": value,
             })
             # Optimistic update; the volume sensor callback will correct this
             self._volume_level = volume
@@ -564,7 +566,7 @@ class MediaPlayer(MediaPlayerEntity):
             _LOGGER.debug(
                 "Set volume to %s (android: %d) on %s",
                 volume,
-                android_volume,
+                value,
                 self.device_name,
             )
         except Exception as err:

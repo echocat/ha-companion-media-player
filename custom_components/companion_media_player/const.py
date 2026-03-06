@@ -12,11 +12,9 @@ ENTITY_ATTR_PREFIX_TITLE = "title_"
 
 # Options keys
 CONF_SESSION_TIMEOUT = "session_timeout"
-CONF_VOLUME_MAX = "volume_max"
 
 # Defaults
 DEFAULT_SESSION_TIMEOUT = 30  # minutes
-DEFAULT_VOLUME_MAX = 15  # typical Android max volume level
 
 # Sensor patterns
 MEDIA_SESSION_SENSOR_SUFFIX = "_media_session"
