@@ -1,0 +1,31 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Companion Media Player",
+        "description": "Deze integratie ontdekt automatisch alle Android-apparaten met de Companion App en maakt er Media Player-entiteiten voor aan. Klik op Verzenden om te activeren."
+      }
+    },
+    "abort": {
+      "already_configured": "Companion Media Player is al geconfigureerd."
+    }
+  },
+  "entity": {
+    "media_player": {
+      "player": {
+        "name": "Media Player"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Companion Media Player-opties",
+        "description": "Stel het standaardgedrag in voor alle Media Players.",
+        "data": {
+          "session_timeout": "Session-time-out (minuten)"
+        }
+      }
+    }
+  }
+}
