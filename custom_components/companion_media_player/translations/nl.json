@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Companion Media Player",
-        "description": "Deze integratie ontdekt automatisch alle Android-apparaten met de Companion App en maakt er Media Player-entiteiten voor aan. Klik op Verzenden om te activeren."
+        "description": "Deze integratie ondersteunt alleen Android-apparaten. De Media Session-sensor moet zijn ingeschakeld. Volumebediening is alleen beschikbaar als de sensor volume_level_music is ingeschakeld. Acties vanuit Home Assistant worden vrijwel realtime verzonden, terwijl updates vanaf het apparaat afhangen van hoe de Companion App sensorupdates doorstuurt. Zie: https://companion.home-assistant.io/docs/core/sensors"
       }
     },
     "abort": {
