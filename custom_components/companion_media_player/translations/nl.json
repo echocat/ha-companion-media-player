@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Companion Media Player",
-        "description": "Deze integratie ondersteunt alleen Android-apparaten. De Media Session-sensor moet zijn ingeschakeld. Volumebediening is alleen beschikbaar als de sensor volume_level_music is ingeschakeld. Acties vanuit Home Assistant worden vrijwel realtime verzonden, terwijl updates vanaf het apparaat afhangen van hoe de Companion App sensorupdates doorstuurt. Zie: https://companion.home-assistant.io/docs/core/sensors"
+        "description": "Deze integratie ondersteunt alleen Android-apparaten. De Media Session-sensor moet zijn ingeschakeld. Volumebediening is alleen beschikbaar als de sensor volume_level_music is ingeschakeld. Acties vanuit Home Assistant worden vrijwel realtime verzonden, terwijl updates vanaf het apparaat afhangen van hoe de Companion App sensorupdates doorstuurt. Zie de sensordocumentatie van de Companion App voor details."
       }
     },
     "abort": {
