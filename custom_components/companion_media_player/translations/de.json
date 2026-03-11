@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Companion Media Player",
-        "description": "Diese Integration erkennt automatisch alle Android-Geräte mit der Companion App und erstellt Media-Player-Entitäten dafür. Klicke auf Senden, um sie zu aktivieren."
+        "description": "Diese Integration unterstützt nur Android-Geräte. Der Media-Session-Sensor muss aktiviert sein. Lautstärkesteuerungen sind nur verfügbar, wenn der Sensor volume_level_music aktiviert ist. Aktionen aus Home Assistant werden nahezu in Echtzeit gesendet, während Updates vom Gerät von der Sensor-Übermittlung der Companion App abhängen. Siehe die Sensor-Doku der Companion App für Details."
       }
     },
     "abort": {

@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Companion Media Player",
-        "description": "Cette intégration détecte automatiquement tous les appareils Android avec l'application Companion et crée des entités Media Player pour eux. Cliquez sur Envoyer pour activer."
+        "description": "Cette intégration prend en charge uniquement les appareils Android. Le capteur Media Session doit être activé. Le contrôle du volume est disponible uniquement si le capteur volume_level_music est activé. Les actions depuis Home Assistant sont envoyées presque en temps réel, tandis que les mises à jour depuis l'appareil dépendent de la fréquence de remontée des capteurs de l'app Companion. Voir la documentation des capteurs de l'app Companion pour plus de détails."
       }
     },
     "abort": {

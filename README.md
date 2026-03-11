@@ -6,6 +6,8 @@
 
 A Home Assistant custom integration that creates **Media Player entities** from the **Android Companion App's Media Session sensors**.
 
+This integration is **Android-only**.
+
 ## Features
 
 - **Auto-Discovery**: Automatically detects all Android devices with the Companion App that have a Media Session sensor enabled.
@@ -19,16 +21,19 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 
 - Home Assistant 2026.1.0 or newer
 - Android device(s) with the [Home Assistant Companion App](https://companion.home-assistant.io/) installed
-- **Media Session sensor** enabled in the Companion App (Manage Sensors → Media Session)
+- **Media Session sensor** enabled in the Companion App ([Settings → Companion-App → Manage Sensors → Media Session](https://companion.home-assistant.io/docs/core/sensors/#media-session-sensor))
 - **Notification Listener permission** granted to the Companion App
+- For volume control: the `volume_level_music` sensor must be enabled in the Companion App ([Settings → Companion-App → Manage Sensors → Audio Sensors](https://companion.home-assistant.io/docs/core/sensors/#volume-levels))
 
 ## Installation
 
-### Quick Add to HACS
+### 1. Install to your Home Assistant
+
+#### Quick Add to HACS
 
 [![Open your Home Assistant instance and add this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=echocat&repository=ha-companion-media-player&category=integration)
 
-### HACS *(recommended)*
+#### HACS *(recommended)*
 1. Open HACS in your Home Assistant instance
 2. Click on **Integrations**
 3. Click the three dots in the top right and select **Custom repositories**
@@ -37,7 +42,7 @@ A Home Assistant custom integration that creates **Media Player entities** from 
 6. Restart Home Assistant
 
 <details>
-<summary><h3>Manual</h3></summary>
+<summary><h4>Manual</h4></summary>
 
 You probably **do not** want to do this! Use the HACS method above unless you know what you are doing and have a good reason as to why you are installing manually
 
@@ -46,20 +51,27 @@ You probably **do not** want to do this! Use the HACS method above unless you kn
 3. Restart Home Assistant
 </details>
 
-## Configuration
+### 2. Activate
 
 1. Go to **Settings** → **Devices & Services** → **Add Integration**
 2. Search for **Companion Media Player**
 3. The integration will automatically find all devices with a Media Session sensor
-4. Select the device(s) you want to create Media Player entities for
-5. Configure options (session timeout, volume range) as needed
+
+### 3. Done!
+The integration will automatically add new media players for available companion apps when they become available via [Mobile App integration](https://www.home-assistant.io/integrations/mobile_app) in [your Home Assistant](https://my.home-assistant.io/redirect/integration/?domain=mobile_app).
+
+## Behavior and update latency
+
+- If you trigger actions from Home Assistant (Play/Pause/Next/Previous/Volume), the command is sent to the Android device almost in real time.
+- If playback or volume changes are triggered directly on the Android device, how quickly Home Assistant sees these updates depends on how the Companion App reports sensor updates. 
+
+[See sensor documentation for more details](https://companion.home-assistant.io/docs/core/sensors/#how-sensors-update)
 
 ## Options
 
 | Option | Default | Description |
 |--------|---------|-------------|
 | Session Timeout | 30 minutes | Time after which an inactive media session is considered idle (regardless if it is playing or not). |
-| Volume Max | 15 | Maximum volume level of the Android device (used for 0.0–1.0 mapping) |
 
 ## Development
 

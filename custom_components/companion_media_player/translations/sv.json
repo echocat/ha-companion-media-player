@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Companion Media Player",
-        "description": "Denna integration upptäcker automatiskt alla Android-enheter med Companion-appen och skapar Media Player-entiteter för dem. Klicka på Skicka för att aktivera."
+        "description": "Denna integration stöder endast Android-enheter. Sensorn Media Session måste vara aktiverad. Volymstyrning är endast tillgänglig om sensorn volume_level_music är aktiverad. Åtgärder från Home Assistant skickas nästan i realtid, medan uppdateringar från enheten beror på hur Companion-appen rapporterar sensoruppdateringar. Se Companion-appens sensordokumentation för detaljer."
       }
     },
     "abort": {
