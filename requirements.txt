@@ -1,6 +1,6 @@
 colorlog==6.10.1
 homeassistant>=2026.1.0
-pip>=26.1.1
+pip>=26.1.2
 pymicro-vad==1.0.1
 pyspeex_noise==1.0.2
 sqlalchemy
